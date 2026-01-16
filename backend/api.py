@@ -1,6 +1,7 @@
 # backend/api.py
 
 from fastapi import FastAPI, Query, Body
+from fastapi.middleware.cors import CORSMiddleware
 from backend.agent_router import AgentRouter
 
 # 🔹 Phase 3: Persistence
@@ -19,6 +20,15 @@ init_db()
 app = FastAPI(
     title="AI Analytics Dashboard API",
     version="1.0.0",
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # -------------------------------------------------
@@ -56,11 +66,23 @@ def analyze_view(payload: dict = Body(...)):
     """
     view = payload.get("view")
     base_query = payload.get("query", "revenue")
+    time_range = payload.get("timeRange", "6m")
+
+    # Convert time range to readable format
+    time_range_map = {
+        "1m": "last month",
+        "3m": "last 3 months",
+        "6m": "last 6 months",
+        "1y": "last year",
+        "2y": "last 2 years",
+        "all": "all time"
+    }
+    time_period = time_range_map.get(time_range, "last 6 months")
 
     view_to_prompt = {
-        "kpi-overview": f"total {base_query} last month",
-        "trend-analysis": f"trend of {base_query} over last 6 months",
-        "breakdown": f"breakdown of {base_query} by region",
+        "kpi-overview": f"total {base_query} {time_period}",
+        "trend-analysis": f"Analyze the trend of {base_query} over the {time_period}. Provide detailed insights about growth patterns, seasonal variations, significant changes, and future projections based on historical data. Include percentage changes, key drivers, and actionable recommendations.",
+        "breakdown": f"Provide a detailed breakdown of {base_query} by region, category, and time period for the {time_period}. Analyze performance across different segments, identify top/bottom performers, calculate market share percentages, and explain the factors contributing to variations between segments.",
         "saved-insights": "show saved insights",
     }
 
@@ -72,6 +94,13 @@ def analyze_view(payload: dict = Body(...)):
 # -------------------------------------------------
 app.include_router(insights_router)
 app.include_router(settings_router)
+
+# Alias for saved-insights to match frontend expectation
+@app.get("/saved-insights")
+def get_saved_insights():
+    from backend.routes.insights import list_insights
+    data = list_insights()
+    return {"status": "success", "data": data}
 
 # -------------------------------------------------
 # Global Safety Net (Never crash API)

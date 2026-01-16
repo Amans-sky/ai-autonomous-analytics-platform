@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
   TrendingUp,
@@ -20,16 +21,25 @@ interface SidebarProps {
   onViewChange: (view: SidebarView) => void;
 }
 
-const menuItems: { id: SidebarView; label: string; icon: React.ElementType }[] =
+const menuItems: { id: SidebarView; label: string; icon: React.ElementType; route?: string }[] =
   [
     { id: "kpi-overview", label: "KPI Overview", icon: LayoutDashboard },
-    { id: "trend-analysis", label: "Trend Analysis", icon: TrendingUp },
-    { id: "breakdown", label: "Breakdown", icon: PieChart },
+    { id: "trend-analysis", label: "Trend Analysis", icon: TrendingUp, route: "/trend-analysis" },
+    { id: "breakdown", label: "Breakdown", icon: PieChart, route: "/breakdown" },
     { id: "saved-insights", label: "Saved Insights", icon: Bookmark },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
 const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
+  const navigate = useNavigate();
+
+  const handleClick = (item: typeof menuItems[0]) => {
+    if (item.route) {
+      navigate(item.route);
+    } else {
+      onViewChange(item.id);
+    }
+  };
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border bg-card">
       {/* Logo / Brand */}
@@ -47,7 +57,7 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
           return (
             <button
               key={item.id}
-              onClick={() => onViewChange(item.id)}
+              onClick={() => handleClick(item)}
               className={cn(
                 "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
